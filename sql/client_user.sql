@@ -27,7 +27,8 @@ create table client_user (
 -- ----------------------------
 -- 初始化-客户端用户表数据
 -- ----------------------------
-insert into client_user values(1, 'client', '客户端用户', 'client@163.com', '15888888888', '1', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', sysdate(), sysdate(), 'admin', sysdate(), '', null, '客户端用户');
+-- 默认密码: 123456
+insert into client_user values(100, 'client', '客户端用户', 'client@163.com', '15888888888', '1', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', sysdate(), sysdate(), 'admin', sysdate(), '', null, '客户端用户');
 
 
 -- ----------------------------
@@ -43,3 +44,12 @@ insert into sys_menu values('2003', '客户端用户修改', '2000', '3', '', ''
 insert into sys_menu values('2004', '客户端用户删除', '2000', '4', '', '', '', '', 1, 0, 'F', '0', '0', 'client:user:remove', '#', 'admin', sysdate(), '', null, '');
 insert into sys_menu values('2005', '客户端用户导出', '2000', '5', '', '', '', '', 1, 0, 'F', '0', '0', 'client:user:export', '#', 'admin', sysdate(), '', null, '');
 insert into sys_menu values('2006', '客户端用户重置密码', '2000', '6', '', '', '', '', 1, 0, 'F', '0', '0', 'client:user:resetPwd', '#', 'admin', sysdate(), '', null, '');
+
+-- ----------------------------
+-- 客户端会话管理菜单
+-- ----------------------------
+insert into sys_menu values('2010', '客户端会话管理', '0', '5', 'clientonline', 'client/online/index', '', '', 1, 0, 'C', '0', '0', 'client:online:list', 'online', 'admin', sysdate(), '', null, '客户端会话管理菜单');
+
+-- 客户端会话管理按钮
+insert into sys_menu values('2011', '客户端会话查询', '2010', '1', '', '', '', '', 1, 0, 'F', '0', '0', 'client:online:query', '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('2012', '客户端会话强退', '2010', '2', '', '', '', '', 1, 0, 'F', '0', '0', 'client:online:forceLogout', '#', 'admin', sysdate(), '', null, '');

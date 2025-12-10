@@ -1,5 +1,6 @@
 package com.ruoyi.project.client.service;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -106,6 +107,9 @@ public class ClientLoginService
         // 记录登录信息
         AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_SUCCESS, MessageUtils.message("user.login.success")));
         recordLoginInfo(clientUser.getUserId());
+        
+        // 踢出已登录的用户（单会话模式）
+        kickOutUser(username);
         
         // 创建登录用户
         ClientLoginUser loginUser = new ClientLoginUser(clientUser);
@@ -325,5 +329,25 @@ public class ClientLoginService
     private String getCacheKey(String username)
     {
         return CacheConstants.CLIENT_PWD_ERR_CNT_KEY + username;
+    }
+
+    /**
+     * 踢出已登录用户（实现单会话模式）
+     * 
+     * @param username 用户名
+     */
+    private void kickOutUser(String username)
+    {
+        Collection<String> keys = redisCache.keys(CacheConstants.CLIENT_LOGIN_TOKEN_KEY + "*");
+        for (String key : keys)
+        {
+            ClientLoginUser user = redisCache.getCacheObject(key);
+            if (user != null && user.getUsername() != null && user.getUsername().equals(username))
+            {
+                // 删除已存在的会话
+                redisCache.deleteObject(key);
+                log.info("客户端用户：{} 的旧会话已被踢出", username);
+            }
+        }
     }
 }
