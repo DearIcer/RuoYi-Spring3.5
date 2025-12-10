@@ -81,4 +81,16 @@ public class SwaggerConfig
                 .pathsToMatch("/tool/**")
                 .build();
     }
+
+    /**
+     * 客户端模块 API 分组
+     */
+    @Bean
+    public GroupedOpenApi clientApi()
+    {
+        return GroupedOpenApi.builder()
+                .group("4-客户端模块")
+                .pathsToMatch("/client/**")
+                .build();
+    }
 }
