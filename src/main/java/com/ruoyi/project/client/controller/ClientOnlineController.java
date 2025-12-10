@@ -19,6 +19,7 @@ import com.ruoyi.framework.redis.RedisCache;
 import com.ruoyi.framework.web.controller.BaseController;
 import com.ruoyi.framework.web.domain.AjaxResult;
 import com.ruoyi.framework.web.page.TableDataInfo;
+import com.ruoyi.framework.websocket.ClientWebSocketHandler;
 import com.ruoyi.project.client.domain.ClientLoginUser;
 import com.ruoyi.project.client.domain.ClientUserOnline;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +38,9 @@ public class ClientOnlineController extends BaseController
 {
     @Autowired
     private RedisCache redisCache;
+
+    @Autowired(required = false)
+    private ClientWebSocketHandler webSocketHandler;
 
     /**
      * 获取客户端在线用户列表
@@ -95,7 +99,16 @@ public class ClientOnlineController extends BaseController
     @DeleteMapping("/{tokenId}")
     public AjaxResult forceLogout(@Parameter(description = "会话编号") @PathVariable String tokenId)
     {
-        redisCache.deleteObject(CacheConstants.CLIENT_LOGIN_TOKEN_KEY + tokenId);
+        String redisKey = CacheConstants.CLIENT_LOGIN_TOKEN_KEY + tokenId;
+        // 先获取用户信息，用于发送WebSocket通知
+        ClientLoginUser loginUser = redisCache.getCacheObject(redisKey);
+        if (loginUser != null && webSocketHandler != null)
+        {
+            // 发送WebSocket踢出通知
+            webSocketHandler.sendKickOutNotification(loginUser.getUsername(), "您已被管理员强制下线");
+        }
+        // 删除Redis会话
+        redisCache.deleteObject(redisKey);
         return success();
     }
 

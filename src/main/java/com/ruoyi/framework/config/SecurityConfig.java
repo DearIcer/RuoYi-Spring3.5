@@ -111,7 +111,7 @@ public class SecurityConfig
             .authorizeHttpRequests((requests) -> {
                 permitAllUrl.getUrls().forEach(url -> requests.requestMatchers(url).permitAll());
                 // 对于登录login 注册register 验证码captchaImage 允许匿名访问
-                requests.requestMatchers("/login", "/register", "/captchaImage", "/client/login", "/client/logout").permitAll()
+                requests.requestMatchers("/login", "/register", "/captchaImage", "/client/login", "/client/logout", "/ws/**").permitAll()
                     // 静态资源，可匿名访问
                     .requestMatchers(HttpMethod.GET, "/", "/*.html", "/css/**", "/js/**", "/img/**", "/fonts/**", "/profile/**").permitAll()
                     .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs", "/swagger-resources/**", "/webjars/**", "/druid/**").permitAll()

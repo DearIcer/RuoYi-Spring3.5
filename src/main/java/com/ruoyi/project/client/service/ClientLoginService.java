@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import com.ruoyi.common.constant.CacheConstants;
 import com.ruoyi.common.constant.Constants;
@@ -27,6 +28,7 @@ import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.framework.manager.AsyncManager;
 import com.ruoyi.framework.manager.factory.AsyncFactory;
 import com.ruoyi.framework.redis.RedisCache;
+import com.ruoyi.framework.websocket.ClientWebSocketHandler;
 import com.ruoyi.project.client.domain.ClientLoginUser;
 import com.ruoyi.project.client.domain.ClientUser;
 import eu.bitwalker.useragentutils.UserAgent;
@@ -67,6 +69,10 @@ public class ClientLoginService
 
     @Autowired
     private IClientUserService clientUserService;
+
+    @Lazy
+    @Autowired(required = false)
+    private ClientWebSocketHandler webSocketHandler;
 
     /**
      * 客户端登录验证
@@ -344,10 +350,48 @@ public class ClientLoginService
             ClientLoginUser user = redisCache.getCacheObject(key);
             if (user != null && user.getUsername() != null && user.getUsername().equals(username))
             {
+                // 发送WebSocket踢出通知
+                if (webSocketHandler != null)
+                {
+                    webSocketHandler.sendKickOutNotification(username, "您的账号在其他设备登录");
+                }
                 // 删除已存在的会话
                 redisCache.deleteObject(key);
                 log.info("客户端用户：{} 的旧会话已被踢出", username);
             }
         }
+    }
+
+    /**
+     * 通过JWT令牌获取客户端登录用户（用于WebSocket验证）
+     * 
+     * @param token JWT令牌
+     * @return 客户端登录用户
+     */
+    public ClientLoginUser getLoginUserByToken(String token)
+    {
+        if (StringUtils.isNotEmpty(token))
+        {
+            try
+            {
+                Claims claims = parseToken(token);
+                // 检查是否是客户端用户
+                String userType = (String) claims.get("user_type");
+                if (!"client".equals(userType))
+                {
+                    return null;
+                }
+                // 解析对应的权限以及用户信息
+                String uuid = (String) claims.get(Constants.LOGIN_USER_KEY);
+                String userKey = getTokenKey(uuid);
+                ClientLoginUser user = redisCache.getCacheObject(userKey);
+                return user;
+            }
+            catch (Exception e)
+            {
+                log.error("解析客户端令牌异常'{}'", e.getMessage());
+            }
+        }
+        return null;
     }
 }
