@@ -31,8 +31,6 @@ export const initDynamicRouter = async () => {
   };
 
   try {
-    let homePath: string = HOME_URL; // 首页路径
-
     // 1. 获取用户信息 - RuoYi: /getInfo
     await userStore.getUserInfo();
 
@@ -47,38 +45,67 @@ export const initDynamicRouter = async () => {
       return routerError();
     }
 
-    // 5. 查找首页
-    const homeMenu = authStore.authMenuListGet.find(item => item.isHome === true);
-    if (homeMenu) {
-      homePath = homeMenu.path;
-    } else {
-      // 如果不存在首页，设置第一个菜单为首页
-      const firstMenu = authStore.flatMenuListGet[0];
-      if (firstMenu) {
-        homePath = firstMenu.path;
-      }
-    }
+    // 5. 添加动态路由，并找到第一个有效的页面作为首页
+    console.log("[RuoYi] Adding dynamic routes, total:", authStore.flatMenuListGet.length);
+    let firstValidPath: string | null = null;
 
-    // 6. 添加动态路由
     authStore.flatMenuListGet.forEach(item => {
       item.children && delete item.children;
       if (item.component && typeof item.component == "string") {
         // RuoYi组件路径格式: "system/user/index" -> "/src/views/system/user/index.vue"
-        const componentPath = "/src/views/" + item.component + ".vue";
-        item.component = modules[componentPath];
-        if (!item.component) {
-          console.warn(`Component not found: ${componentPath}`);
+        // 处理以/开头的绝对路径
+        let componentPath;
+        if (item.component && item.component.startsWith("/")) {
+          componentPath = "/src/views" + item.component + ".vue";
+        } else if (item.component) {
+          componentPath = "/src/views/" + item.component + ".vue";
+        } else {
+          // 如果没有组件路径，跳过组件加载
+          item.component = undefined;
+        }
+
+        if (item.component && modules[componentPath]) {
+          item.component = modules[componentPath];
+        } else if (item.component) {
+          // 尝试不带index后缀的路径
+          let altPath;
+          if (item.component.startsWith("/")) {
+            altPath = "/src/views" + item.component.replace(/\/index$/, "") + ".vue";
+          } else {
+            altPath = "/src/views/" + item.component.replace(/\/index$/, "") + ".vue";
+          }
+          if (modules[altPath]) {
+            item.component = modules[altPath];
+          } else {
+            console.warn(`[RuoYi] Component not found: ${componentPath}`);
+            console.warn(`[RuoYi] Available modules:`, Object.keys(modules).slice(0, 10), "...");
+            item.component = undefined; // 清除无效组件路径
+          }
         }
       }
-      // 只添加有组件的路由
-      if (item.component) {
-        if (item.meta.isFull) {
-          router.addRoute(item as unknown as RouteRecordRaw);
-        } else {
-          router.addRoute("layout", item as unknown as RouteRecordRaw);
-        }
+      // 添加路由（无论是否有组件）
+      console.log(`[RuoYi] Adding route: ${item.path}`);
+      // 记录第一个有效的路由作为首页
+      if (!firstValidPath && !item.meta.isHide && item.component) {
+        firstValidPath = item.path;
+      }
+      if (item.meta.isFull) {
+        router.addRoute(item as unknown as RouteRecordRaw);
+      } else {
+        router.addRoute("layout", item as unknown as RouteRecordRaw);
       }
     });
+
+    // 6. 确定首页路径
+    let homePath: string = HOME_URL;
+    const homeMenu = authStore.authMenuListGet.find(item => item.isHome === true);
+    if (homeMenu) {
+      homePath = homeMenu.path;
+    } else if (firstValidPath) {
+      // 使用第一个有效组件的路由作为首页
+      homePath = firstValidPath;
+      console.log(`[RuoYi] No home page defined, using first valid route: ${homePath}`);
+    }
 
     return Promise.resolve(homePath);
   } catch (error) {

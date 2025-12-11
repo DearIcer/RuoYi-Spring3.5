@@ -1,17 +1,18 @@
 <template>
-  <svg v-if="renderLocalIcon" aria-hidden="true" width="1em" height="1em" v-bind="bindAttrs">
-    <use :xlink:href="symbolId" fill="currentColor" />
+  <svg :class="svgClass" aria-hidden="true">
+    <use :xlink:href="iconName" :fill="color" />
   </svg>
-  <Icon v-else :icon="icon" :color="color" width="1em" height="1em" v-bind="bindAttrs" />
 </template>
 
-<script setup lang="ts" name="SvgIcon">
-import { computed, useAttrs } from "vue";
-import { Icon } from "@iconify/vue";
+<script setup lang="ts">
+import { computed } from "vue";
 
-// props
 const props = defineProps({
-  icon: {
+  iconClass: {
+    type: String,
+    required: true
+  },
+  className: {
     type: String,
     default: ""
   },
@@ -21,25 +22,29 @@ const props = defineProps({
   }
 });
 
-const attrs = useAttrs();
-
-const bindAttrs = computed<{ class: string; style: string }>(() => ({
-  class: (attrs.class as string) || "",
-  style: (attrs.style as string) || ""
-}));
-
-const symbolId = computed(() => {
-  const defaultLocalIcon = "no-icon";
-
-  const icon = props.icon || defaultLocalIcon;
-  return `#local-${icon.split(":")[1]}`;
-});
-
-/** 渲染本地icon */
-const renderLocalIcon = computed(() => {
-  if (props.icon) return props.icon.split(":")[0] === "local"; //如果是iconify图标，就不渲染本地图标
-  return false;
+const iconName = computed(() => `#icon-${props.iconClass}`);
+const svgClass = computed(() => {
+  if (props.className) {
+    return `svg-icon ${props.className}`;
+  }
+  return "svg-icon";
 });
 </script>
 
-<style scoped></style>
+<style scoped lang="scss">
+.sub-el-icon,
+.nav-icon {
+  display: inline-block;
+  font-size: 15px;
+  margin-right: 12px;
+  position: relative;
+}
+
+.svg-icon {
+  width: 1em;
+  height: 1em;
+  position: relative;
+  fill: currentColor;
+  vertical-align: -2px;
+}
+</style>
